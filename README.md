@@ -8,4 +8,7 @@ chmod +x start_cluster.sh & chmod +x stop_cluster.sh
 
 ## To start
 `./start_cluster.sh`
+
+## To stop 
+`./stop_cluster.sh`
   
