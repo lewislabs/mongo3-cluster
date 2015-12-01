@@ -1,29 +1,34 @@
 #!/bin/bash
 echo "Running mongo-rs-setup.sh"
-echo "Grabbing the IP's for the other mongo servers"
+
+MONGODB1=`ping -c 1 mongo1 | head -1  | cut -d "(" -f 2 | cut -d ")" -f 1`
 MONGODB2=`ping -c 1 mongo2 | head -1  | cut -d "(" -f 2 | cut -d ")" -f 1`
 MONGODB3=`ping -c 1 mongo3 | head -1  | cut -d "(" -f 2 | cut -d ")" -f 1`
 
+echo "MONGO1=$MONGODB1"
 echo "MONGO2=$MONGODB2"
 echo "MONGO3=$MONGODB3"
-echo "Grabbing my Ip"
-ME=`ip -f inet addr show eth0 | egrep -o 'inet.*[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut -d ' ' -f 2`
-echo "My Ip is $ME"
 
-echo "Waiting for startup on mongo3.."
-until curl http://${MONGODB3}:28017/serverStatus\?text\=1 2>&1 | grep uptime | head -1; do
+echo "Waiting for startup on mongo1.."
+until curl http://mongo1:28017/serverStatus\?text\=1 2>&1 | grep uptime | head -1; do
   printf '.'
   sleep 1
 done
 
 echo "Waiting for startup on mongo2.."
-until curl http://${MONGODB2}:28017/serverStatus\?text\=1 2>&1 | grep uptime | head -1; do
+until curl http://mongo2:28017/serverStatus\?text\=1 2>&1 | grep uptime | head -1; do
+  printf '.'
+  sleep 1
+done
+
+echo "Waiting for startup on mongo3.."
+until curl http://mongo3:28017/serverStatus\?text\=1 2>&1 | grep uptime | head -1; do
   printf '.'
   sleep 1
 done
 
 echo "Replicas started..."
-mongo <<EOF
+mongo --host mongo1 <<EOF
     
    var cfg = {
         "_id": "rs",
@@ -31,18 +36,18 @@ mongo <<EOF
         "members": [
             {
                 "_id": 0,
-                "host": "${ME}:27017",
+                "host": "mongo1:27017",
                 "priority": 2
             },
             {
                 "_id": 1,
-                "host": "${MONGODB2}:27017",
-                "priority": 0
+                "host": "mongo2:27017",
+                "priority": 1
             },
             {
                 "_id": 2,
-                "host": "${MONGODB3}:27017",
-                "priority": 0
+                "host": "mongo3:27017",
+                "priority": 1
             }
         ]
     };
